@@ -29,6 +29,14 @@
                         </a>
                     </div>
                 </div>
+                <div>
+                    <form action="{{ route('admin.logout') }}" method="POST" class="inline">
+                        @csrf
+                        <button type="submit" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
+                            Uitloggen
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </nav>
