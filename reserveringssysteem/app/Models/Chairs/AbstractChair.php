@@ -50,4 +50,19 @@ abstract class AbstractChair extends Model implements ChairInterface
         $this->is_available = true;
         $this->save();
     }
+
+    /**
+     * Haal de basisprijs op van de screening
+     */
+    protected function getScreeningPrice(): float
+    {
+        // Haal de actieve screening op voor deze stoel via de zaal
+        $screening = $this->screen->screenings()
+            ->where('start_time', '<=', now())
+            ->where('end_time', '>=', now())
+            ->where('is_active', true)
+            ->first();
+
+        return $screening ? $screening->price : 0.00;
+    }
 }
