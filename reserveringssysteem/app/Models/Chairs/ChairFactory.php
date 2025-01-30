@@ -4,7 +4,7 @@ namespace App\Models\Chairs;
 
 class ChairFactory
 {
-    public static function createChair(string $type, int $rowNumber, int $seatNumber): ChairInterface
+    public static function createChair(string $type, int $rowNumber, int $seatNumber, int $screenId): ChairInterface
     {
         $chair = match ($type) {
             'standaard' => new StandardChair(),
@@ -18,6 +18,7 @@ class ChairFactory
             'type' => $type,
             'row_number' => $rowNumber,
             'seat_number' => $seatNumber,
+            'screen_id' => $screenId,
             'price' => $chair->getPrice(),
             'is_available' => true
         ]);

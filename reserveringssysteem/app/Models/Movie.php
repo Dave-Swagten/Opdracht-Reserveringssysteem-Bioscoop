@@ -12,7 +12,7 @@ class Movie extends Model
         'title',
         'description',
         'duration',
-        'rating',
+        'genre',
         'poster_url',
         'is_active'
     ];

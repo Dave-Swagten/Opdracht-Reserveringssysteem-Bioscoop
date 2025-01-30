@@ -3,29 +3,32 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use App\Models\Reservation;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Screen;
 
 class Chair extends Model
 {
     protected $fillable = [
+        'screen_id',
         'type',
         'row_number',
         'seat_number',
-        'is_available',
-        'price'
+        'price',
+        'is_available'
     ];
 
     protected $casts = [
-        'is_available' => 'boolean',
-        'price' => 'decimal:2'
+        'row_number' => 'integer',
+        'seat_number' => 'integer',
+        'price' => 'decimal:2',
+        'is_available' => 'boolean'
     ];
 
     /**
-     * De huidige reservering voor deze stoel
+     * De zaal waar deze stoel bij hoort
      */
-    public function reservation(): HasOne
+    public function screen(): BelongsTo
     {
-        return $this->hasOne(Reservation::class);
+        return $this->belongsTo(Screen::class);
     }
 }

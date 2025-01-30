@@ -35,10 +35,13 @@ class MovieController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'duration' => 'required|integer|min:1',
-            'rating' => 'nullable|string|max:10',
+            'genre' => 'required|string|max:255',
             'poster_url' => 'nullable|url|max:255',
             'is_active' => 'boolean'
         ]);
+
+        // Zorg ervoor dat is_active correct wordt gezet
+        $validated['is_active'] = $request->boolean('is_active');
 
         Movie::create($validated);
 
@@ -72,10 +75,13 @@ class MovieController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'duration' => 'required|integer|min:1',
-            'rating' => 'nullable|string|max:10',
+            'genre' => 'required|string|max:255',
             'poster_url' => 'nullable|url|max:255',
             'is_active' => 'boolean'
         ]);
+
+        // Zorg ervoor dat is_active correct wordt gezet
+        $validated['is_active'] = $request->boolean('is_active');
 
         $movie->update($validated);
 

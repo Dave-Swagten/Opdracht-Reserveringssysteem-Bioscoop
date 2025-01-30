@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('title');
             $table->text('description')->nullable();
             $table->integer('duration')->comment('Duur in minuten');
-            $table->string('rating')->nullable()->comment('Leeftijdsclassificatie');
+            $table->string('genre')->nullable()->comment('Filmgenre');
             $table->string('poster_url')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();

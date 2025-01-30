@@ -13,15 +13,16 @@ return new class extends Migration
     {
         Schema::create('chairs', function (Blueprint $table) {
             $table->id();
-            $table->string('type'); // stoel
-            $table->integer('row_number'); // rijnummer
-            $table->integer('seat_number'); // stoelnummer
+            $table->foreignId('screen_id')->constrained()->onDelete('cascade');
+            $table->string('type'); // standard, luxury, wheelchair
+            $table->integer('row_number');
+            $table->integer('seat_number');
+            $table->decimal('price', 8, 2);
             $table->boolean('is_available')->default(true);
-            $table->decimal('price', 8, 2); // prijs van de stoel
             $table->timestamps();
-            
-            // Unieke combinatie van rij en stoelnummer
-            $table->unique(['row_number', 'seat_number']);
+
+            // Een stoel moet uniek zijn binnen een zaal (combinatie van screen_id, rij en stoelnummer)
+            $table->unique(['screen_id', 'row_number', 'seat_number']);
         });
     }
 
