@@ -9,8 +9,8 @@ class WheelchairSpot extends AbstractChair
         return 'rolstoel';
     }
 
-    public function getPrice(): float
+    public function calculatePrice(float $basePrice): float
     {
-        return 10.00; // Zelfde prijs als standaard stoel
+        return $basePrice; // Rolstoelplekken gebruiken de basisprijs
     }
 }

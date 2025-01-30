@@ -16,20 +16,18 @@ abstract class AbstractChair extends Model implements ChairInterface
         'row_number',
         'seat_number',
         'screen_id',
-        'is_available',
-        'price'
+        'is_available'
     ];
 
     protected $casts = [
         'row_number' => 'integer',
         'seat_number' => 'integer',
         'screen_id' => 'integer',
-        'is_available' => 'boolean',
-        'price' => 'float'
+        'is_available' => 'boolean'
     ];
 
     abstract public function getType(): string;
-    abstract public function getPrice(): float;
+    abstract public function calculatePrice(float $basePrice): float;
 
     public function screen(): BelongsTo
     {

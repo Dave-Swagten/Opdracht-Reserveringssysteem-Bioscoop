@@ -9,8 +9,8 @@ class StandardChair extends AbstractChair
         return 'standaard';
     }
 
-    public function getPrice(): float
+    public function calculatePrice(float $basePrice): float
     {
-        return 10.00; // Standaard prijs voor een normale stoel
+        return $basePrice; // Standaard stoelen gebruiken de basisprijs
     }
 }

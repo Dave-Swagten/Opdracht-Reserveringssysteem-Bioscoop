@@ -9,8 +9,8 @@ class LuxuryChair extends AbstractChair
         return 'luxe';
     }
 
-    public function getPrice(): float
+    public function calculatePrice(float $basePrice): float
     {
-        return 15.00; // Premium prijs voor een luxe stoel
+        return $basePrice + 5.00; // Luxe stoelen kosten 5 euro extra
     }
 }

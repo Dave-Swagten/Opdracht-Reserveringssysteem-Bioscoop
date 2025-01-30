@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Movie;
 use App\Models\Screen;
 use App\Models\Screening;
+use App\Models\Chairs\ChairFactory;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -68,12 +69,16 @@ class CinemaController extends Controller
                         ->where('chair_id', $chair->id)
                         ->exists();
 
+                    // Maak een tijdelijke stoel via de factory voor prijsberekening
+                    $chairInstance = ChairFactory::createInstance($chair->type);
+                    $price = $chairInstance->calculatePrice($screening->price);
+
                     return [
                         'id' => $chair->id,
                         'type' => $chair->type,
                         'row_number' => $chair->row_number,
                         'seat_number' => $chair->seat_number,
-                        'price' => $chair->price,
+                        'price' => number_format($price, 2),
                         'is_available' => !$isReserved
                     ];
                 })
@@ -82,10 +87,14 @@ class CinemaController extends Controller
             Log::info('Grouped chairs count: ' . $chairs->count());
 
             // Bereken de prijs voor elk type stoel
+            $standardChair = ChairFactory::createInstance('standaard');
+            $luxuryChair = ChairFactory::createInstance('luxe');
+            $wheelchairChair = ChairFactory::createInstance('rolstoel');
+
             $prices = [
-                'standaard' => (float) $screening->price,
-                'luxe' => (float) $screening->price * 1.5,
-                'rolstoel' => (float) $screening->price
+                'standaard' => (float) $standardChair->calculatePrice($screening->price),
+                'luxe' => (float) $luxuryChair->calculatePrice($screening->price),
+                'rolstoel' => (float) $wheelchairChair->calculatePrice($screening->price)
             ];
 
             return response()->json([
@@ -99,13 +108,10 @@ class CinemaController extends Controller
                 'chairs' => $chairs,
                 'prices' => $prices
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error in checkAvailability: ' . $e->getMessage());
-            Log::error($e->getTraceAsString());
-            
             return response()->json([
-                'error' => 'Er is een fout opgetreden: ' . $e->getMessage()
+                'error' => 'Er is een fout opgetreden bij het controleren van de beschikbaarheid.'
             ], 500);
         }
     }
