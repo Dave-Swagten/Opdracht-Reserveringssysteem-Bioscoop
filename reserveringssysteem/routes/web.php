@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CinemaController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [CinemaController::class, 'index']);
