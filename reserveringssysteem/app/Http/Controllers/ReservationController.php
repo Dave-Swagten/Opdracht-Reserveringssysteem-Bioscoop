@@ -2,51 +2,69 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Chair;
 use App\Models\Reservation;
+use App\Models\Screening;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class ReservationController extends Controller
 {
+    /**
+     * Maak een nieuwe reservering
+     */
     public function store(Request $request)
     {
         try {
             $validated = $request->validate([
+                'screening_id' => 'required|exists:screenings,id',
+                'chair_ids' => 'required|array',
+                'chair_ids.*' => 'exists:chairs,id',
                 'name' => 'required|string|max:255',
-                'email' => 'required|email|max:255',
-                'chair_id' => 'required|exists:chairs,id',
-                'screening_time' => 'required|date',
-                'movie_title' => 'required|string|max:255'
+                'email' => 'required|email|max:255'
             ]);
 
             // Start een database transactie
             return DB::transaction(function () use ($validated) {
-                // Haal de stoel op en check beschikbaarheid
-                $chair = Chair::findOrFail($validated['chair_id']);
+                // Controleer of de stoelen nog beschikbaar zijn
+                $screening = Screening::findOrFail($validated['screening_id']);
                 
-                if (!$chair->is_available) {
+                // Controleer of er al reserveringen bestaan voor deze stoelen en vertoning
+                $existingReservations = Reservation::where('screening_id', $validated['screening_id'])
+                    ->whereIn('chair_id', $validated['chair_ids'])
+                    ->exists();
+
+                if ($existingReservations) {
                     return response()->json([
-                        'message' => 'Deze stoel is al gereserveerd.'
-                    ], 400);
+                        'error' => 'Een of meerdere geselecteerde stoelen zijn helaas al gereserveerd.'
+                    ], 422);
                 }
 
-                // Maak de reservering
-                $reservation = Reservation::create($validated);
-                
-                // Update de stoel status
-                $chair->update(['is_available' => false]);
+                $reservations = [];
+                $reservationCode = strtoupper(Str::random(8));
+
+                // Maak reserveringen voor alle geselecteerde stoelen
+                foreach ($validated['chair_ids'] as $chairId) {
+                    $reservation = new Reservation();
+                    $reservation->screening_id = $validated['screening_id'];
+                    $reservation->chair_id = $chairId;
+                    $reservation->name = $validated['name'];
+                    $reservation->email = $validated['email'];
+                    $reservation->reservation_code = $reservationCode; // Gebruik dezelfde code voor alle stoelen
+                    $reservation->price = $screening->price;
+                    $reservation->save();
+                    
+                    $reservations[] = $reservation;
+                }
 
                 return response()->json([
-                    'message' => 'Reservering succesvol gemaakt!',
-                    'reservation' => $reservation
-                ], 201);
+                    'message' => 'Reserveringen succesvol gemaakt!',
+                    'reservation_code' => $reservationCode
+                ]);
             });
         } catch (\Exception $e) {
-            Log::error('Reserveringsfout: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Er is een fout opgetreden bij het maken van de reservering: ' . $e->getMessage()
+                'error' => 'Er is een fout opgetreden: ' . $e->getMessage()
             ], 500);
         }
     }

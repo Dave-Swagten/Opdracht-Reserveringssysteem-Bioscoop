@@ -2,63 +2,111 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Chair;
-use App\Models\Reservation;
-use Illuminate\Http\Request;
-use App\Models\Chairs\ChairFactory;
+use App\Models\Movie;
+use App\Models\Screen;
+use App\Models\Screening;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+use Illuminate\Support\Facades\Log;
 
 class CinemaController extends Controller
 {
-    public function index()
+    /**
+     * Toon het filmoverzicht met vertoningen
+     */
+    public function index(): View
     {
-        // Voor nu maken we een simpele 5x5 zaal
-        $rows = 5;
-        $seatsPerRow = 5;
-        
-        // Haal bestaande stoelen op of maak nieuwe aan
-        $seats = [];
-        for ($row = 1; $row <= $rows; $row++) {
-            $seats[$row] = [];
-            for ($seat = 1; $seat <= $seatsPerRow; $seat++) {
-                // Zoek eerst of de stoel al bestaat
-                $chair = Chair::where('row_number', $row)
-                    ->where('seat_number', $seat)
-                    ->first();
-                
-                // Als de stoel niet bestaat, maak een nieuwe aan
-                if (!$chair) {
-                    $chair = ChairFactory::createChair('standaard', $row, $seat);
-                }
-                
-                $seats[$row][$seat] = $chair;
-            }
-        }
+        // Haal alle actieve films op met hun vertoningen
+        $movies = Movie::where('is_active', true)
+            ->with(['screenings' => function ($query) {
+                $query->where('start_time', '>', now())
+                    ->where('is_active', true)
+                    ->orderBy('start_time')
+                    ->with('screen');
+            }])
+            ->orderBy('title')
+            ->get();
 
-        // Haal alle films en tijden op (in een echte applicatie zou dit uit de database komen)
-        // TODO: Haal dit uit de database
-        $screenings = [
-            ['title' => 'Avatar 2', 'time' => '2025-01-30 20:00:00'],
-            ['title' => 'Star Wars', 'time' => '2025-01-30 22:30:00']
-        ];
-        
-        return view('cinema.index', compact('seats', 'screenings'));
+        return view('cinema.index', compact('movies'));
     }
 
+    /**
+     * Controleer beschikbaarheid van stoelen voor een vertoning
+     */
     public function checkAvailability(Request $request)
     {
-        $validated = $request->validate([
-            'movie_title' => 'required|string',
-            'screening_time' => 'required|date'
-        ]);
+        try {
+            $validated = $request->validate([
+                'screening_id' => 'required|exists:screenings,id'
+            ]);
 
-        // Haal alle bezette stoelen op voor deze film en tijd
-        $occupiedChairIds = Reservation::where('movie_title', $validated['movie_title'])
-            ->where('screening_time', $validated['screening_time'])
-            ->pluck('chair_id');
+            Log::info('Checking availability for screening: ' . $validated['screening_id']);
 
-        return response()->json([
-            'occupied_chairs' => $occupiedChairIds
-        ]);
+            // Haal de vertoning op met alle relaties
+            $screening = Screening::with(['screen.chairs', 'movie', 'reservations'])
+                ->findOrFail($validated['screening_id']);
+
+            Log::info('Found screening: ' . $screening->id);
+            Log::info('Screen chairs count: ' . $screening->screen->chairs->count());
+
+            // Controleer of de vertoning nog niet is begonnen
+            if ($screening->start_time <= now()) {
+                return response()->json([
+                    'error' => 'Deze vertoning is al begonnen.'
+                ], 422);
+            }
+
+            // Haal alle stoelen op met hun beschikbaarheid
+            $chairs = $screening->screen->chairs()
+                ->orderBy('row_number')
+                ->orderBy('seat_number')
+                ->get()
+                ->map(function ($chair) use ($screening) {
+                    // Controleer of er een reservering bestaat voor deze stoel
+                    $isReserved = $screening->reservations()
+                        ->where('chair_id', $chair->id)
+                        ->exists();
+
+                    return [
+                        'id' => $chair->id,
+                        'type' => $chair->type,
+                        'row_number' => $chair->row_number,
+                        'seat_number' => $chair->seat_number,
+                        'price' => $chair->price,
+                        'is_available' => !$isReserved
+                    ];
+                })
+                ->groupBy('row_number');
+
+            Log::info('Grouped chairs count: ' . $chairs->count());
+
+            // Bereken de prijs voor elk type stoel
+            $prices = [
+                'standaard' => (float) $screening->price,
+                'luxe' => (float) $screening->price * 1.5,
+                'rolstoel' => (float) $screening->price
+            ];
+
+            return response()->json([
+                'screening' => [
+                    'id' => $screening->id,
+                    'movie' => $screening->movie->title,
+                    'screen' => $screening->screen->name,
+                    'start_time' => $screening->start_time->format('d-m-Y H:i'),
+                    'end_time' => $screening->end_time->format('d-m-Y H:i'),
+                ],
+                'chairs' => $chairs,
+                'prices' => $prices
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error in checkAvailability: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+            
+            return response()->json([
+                'error' => 'Er is een fout opgetreden: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
