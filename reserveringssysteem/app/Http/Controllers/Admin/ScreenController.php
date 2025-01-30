@@ -60,9 +60,10 @@ class ScreenController extends Controller
                 // Bepaal het type stoel
                 $type = 'standaard';
                 
-                if ($request->boolean('has_luxury_seats') && $row === $validated['rows']) {
+                // Controleer of de checkbox is aangevinkt en of dit de laatste rij is
+                if ($request->has('has_luxury_seats') && $row === (int) $validated['rows']) {
                     $type = 'luxe';
-                } elseif ($request->boolean('has_wheelchair_spots') && $row === 1 && in_array($seat, [1, $validated['seats_per_row']])) {
+                } elseif ($request->has('has_wheelchair_spots') && $row === 1 && in_array($seat, [1, $validated['seats_per_row']])) {
                     $type = 'rolstoel';
                 }
 
