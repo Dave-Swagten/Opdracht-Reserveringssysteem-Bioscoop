@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name'); // Bijvoorbeeld: 'Zaal 1'
             $table->integer('rows'); // Aantal rijen
             $table->integer('seats_per_row'); // Aantal stoelen per rij
-            $table->text('configuration')->nullable(); // JSON configuratie voor speciale stoelen
+            $table->json('configuration')->nullable(); // JSON configuratie voor speciale stoelen
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

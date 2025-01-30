@@ -23,6 +23,14 @@ class Screen extends Model
     ];
 
     /**
+     * De stoelen in deze zaal
+     */
+    public function chairs(): HasMany
+    {
+        return $this->hasMany(Chair::class);
+    }
+
+    /**
      * De vertoningen in deze zaal
      */
     public function screenings(): HasMany
@@ -31,10 +39,18 @@ class Screen extends Model
     }
 
     /**
-     * De stoelen in deze zaal
+     * Controleer of de zaal luxe stoelen heeft
      */
-    public function chairs(): HasMany
+    public function hasLuxurySeats(): bool
     {
-        return $this->hasMany(Chair::class);
+        return $this->configuration['has_luxury_seats'] ?? false;
+    }
+
+    /**
+     * Controleer of de zaal rolstoelplekken heeft
+     */
+    public function hasWheelchairSpots(): bool
+    {
+        return $this->configuration['has_wheelchair_spots'] ?? false;
     }
 }
