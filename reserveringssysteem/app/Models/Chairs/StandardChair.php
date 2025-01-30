@@ -11,6 +11,6 @@ class StandardChair extends AbstractChair
 
     public function getPrice(): float
     {
-        return 10.00; // Standaard prijs voor een normale stoel
+        return $this->getScreeningPrice(); // Gebruik de basisprijs van de screening
     }
 }

@@ -11,6 +11,6 @@ class WheelchairSpot extends AbstractChair
 
     public function getPrice(): float
     {
-        return 10.00; // Zelfde prijs als standaard stoel
+        return $this->getScreeningPrice(); // Gebruik de basisprijs van de screening
     }
 }

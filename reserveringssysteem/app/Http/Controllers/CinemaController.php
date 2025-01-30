@@ -68,12 +68,18 @@ class CinemaController extends Controller
                         ->where('chair_id', $chair->id)
                         ->exists();
 
+                    // Bepaal de prijs op basis van het stoeltype
+                    $price = match($chair->type) {
+                        'luxe' => $screening->price + 5.00,
+                        default => $screening->price
+                    };
+
                     return [
                         'id' => $chair->id,
                         'type' => $chair->type,
                         'row_number' => $chair->row_number,
                         'seat_number' => $chair->seat_number,
-                        'price' => $chair->price,
+                        'price' => number_format($price, 2),
                         'is_available' => !$isReserved
                     ];
                 })
@@ -84,7 +90,7 @@ class CinemaController extends Controller
             // Bereken de prijs voor elk type stoel
             $prices = [
                 'standaard' => (float) $screening->price,
-                'luxe' => (float) $screening->price * 1.5,
+                'luxe' => (float) $screening->price + 5.00,
                 'rolstoel' => (float) $screening->price
             ];
 

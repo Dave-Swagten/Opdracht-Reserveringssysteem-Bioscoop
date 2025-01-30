@@ -11,6 +11,6 @@ class LuxuryChair extends AbstractChair
 
     public function getPrice(): float
     {
-        return 15.00; // Premium prijs voor een luxe stoel
+        return $this->getScreeningPrice() + 5.00; // Basisprijs plus 5 euro voor luxe stoel
     }
 }
