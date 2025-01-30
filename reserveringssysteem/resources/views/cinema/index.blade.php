@@ -6,36 +6,76 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Bioscoop Reserveringssysteem</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/animations/scale.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        /* Dark theme voor SweetAlert2 */
+        .swal2-popup {
+            background: #1F2937 !important;
+            color: #F3F4F6 !important;
+        }
+        .swal2-title {
+            color: #F3F4F6 !important;
+        }
+        .swal2-html-container {
+            color: #D1D5DB !important;
+        }
+        .swal2-confirm {
+            background: #3B82F6 !important;
+        }
+        .swal2-styled.swal2-confirm:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5) !important;
+        }
+        .swal2-loader {
+            border-color: #3B82F6 transparent #3B82F6 transparent !important;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen p-8">
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen p-8 text-gray-100">
     <div class="max-w-7xl mx-auto space-y-8">
-        <h1 class="text-3xl font-bold text-center text-gray-900">Films & Vertoningen</h1>
+        <h1 class="text-4xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400 mb-12">
+            Beech Cinema
+        </h1>
 
         <!-- Films overzicht -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             @foreach($movies as $movie)
-                <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div class="bg-gray-800 rounded-xl shadow-xl overflow-hidden transform transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl border border-gray-700">
                     <div class="p-6">
-                        <h2 class="text-xl font-bold text-gray-900 mb-2">{{ $movie->title }}</h2>
-                        <p class="text-gray-600 mb-4">{{ $movie->description }}</p>
-                        <p class="text-sm text-gray-500 mb-4">Duur: {{ $movie->duration }} minuten</p>
+                        <h2 class="text-2xl font-bold text-gray-100 mb-2">{{ $movie->title }}</h2>
+                        <p class="text-gray-400 mb-4">{{ $movie->description }}</p>
+                        <p class="text-sm text-gray-500 mb-4">
+                            <i class="fas fa-clock mr-2"></i>{{ $movie->duration }} minuten
+                        </p>
                         
                         @if($movie->screenings->isNotEmpty())
-                            <div class="space-y-2">
-                                <h3 class="font-semibold text-gray-900">Vertoningen:</h3>
+                            <div class="space-y-3">
+                                <h3 class="font-semibold text-gray-300">
+                                    <i class="fas fa-calendar-alt mr-2"></i>Vertoningen:
+                                </h3>
                                 @foreach($movie->screenings as $screening)
                                     <button 
-                                        class="screening-button w-full text-left px-4 py-2 bg-blue-50 hover:bg-blue-100 rounded-md text-sm"
+                                        class="screening-button w-full text-left px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-all duration-200 flex items-center justify-between group"
                                         data-screening-id="{{ $screening->id }}"
                                     >
-                                        {{ $screening->start_time->format('d-m-Y H:i') }} - 
-                                        {{ $screening->screen->name }} - 
-                                        €{{ number_format($screening->price, 2) }}
+                                        <span class="flex items-center">
+                                            <i class="fas fa-film mr-2 text-blue-400 group-hover:rotate-12 transition-transform duration-200"></i>
+                                            {{ $screening->start_time->format('d-m-Y H:i') }}
+                                        </span>
+                                        <span class="flex items-center">
+                                            <span class="mr-4 text-gray-400">{{ $screening->screen->name }}</span>
+                                            <span class="text-green-400">€{{ number_format($screening->price, 2) }}</span>
+                                        </span>
                                     </button>
                                 @endforeach
                             </div>
                         @else
-                            <p class="text-gray-500 text-sm">Geen vertoningen beschikbaar</p>
+                            <p class="text-gray-500 text-sm italic">
+                                <i class="fas fa-info-circle mr-2"></i>Geen vertoningen beschikbaar
+                            </p>
                         @endif
                     </div>
                 </div>
@@ -43,66 +83,95 @@
         </div>
 
         <!-- Stoelenselectie -->
-        <div id="seatSelection" class="hidden space-y-6">
-            <div class="bg-white p-6 rounded-lg shadow-lg space-y-4">
-                <h3 class="text-xl font-bold text-gray-900">Selecteer uw stoelen</h3>
+        <div id="seatSelection" class="hidden space-y-6 animate-fade-in">
+            <div class="bg-gray-800 p-8 rounded-xl shadow-xl border border-gray-700 space-y-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-2xl font-bold text-gray-100">
+                        <i class="fas fa-chair mr-2 text-blue-400"></i>Selecteer uw stoelen
+                    </h3>
+                    <div id="screeningInfo" class="text-gray-400 text-sm"></div>
+                </div>
                 
                 <!-- Legenda -->
-                <div class="flex gap-4 justify-center text-sm">
+                <div class="flex gap-6 justify-center text-sm bg-gray-700 p-4 rounded-lg">
                     <div class="flex items-center gap-2">
-                        <div class="w-4 h-4 bg-blue-500 rounded"></div>
+                        <div class="w-4 h-4 bg-blue-500 rounded transition-transform hover:scale-110"></div>
                         <span>Standaard</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <div class="w-4 h-4 bg-purple-500 rounded"></div>
+                        <div class="w-4 h-4 bg-purple-500 rounded transition-transform hover:scale-110"></div>
                         <span>Luxe</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <div class="w-4 h-4 bg-green-500 rounded"></div>
+                        <div class="w-4 h-4 bg-green-500 rounded transition-transform hover:scale-110"></div>
                         <span>Rolstoel</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <div class="w-4 h-4 bg-gray-500 rounded"></div>
+                        <div class="w-4 h-4 bg-gray-500 rounded transition-transform hover:scale-110"></div>
                         <span>Bezet</span>
                     </div>
                 </div>
 
+                <!-- Filmscherm -->
+                <div class="relative">
+                    <div class="w-full h-4 bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 rounded-lg mb-8 shadow-lg">
+                        <div class="absolute -bottom-6 w-full text-center text-sm text-gray-400">Filmscherm</div>
+                    </div>
+                </div>
+
                 <!-- Stoelengrid -->
-                <div id="seatsGrid" class="space-y-2"></div>
+                <div id="seatsGrid" class="space-y-3"></div>
 
                 <!-- Geselecteerde stoelen -->
-                <div class="mt-4 space-y-2">
-                    <h4 class="font-semibold">Geselecteerde stoelen:</h4>
+                <div class="mt-6 space-y-4">
+                    <h4 class="font-semibold text-gray-300">
+                        <i class="fas fa-shopping-cart mr-2 text-blue-400"></i>Geselecteerde stoelen:
+                    </h4>
                     <div id="selectedSeats" class="space-y-2">
-                        <p class="text-gray-500">Geen stoelen geselecteerd</p>
+                        <p class="text-gray-500 italic">Geen stoelen geselecteerd</p>
                     </div>
-                    <p id="totalPrice" class="font-bold text-right">Totaal: €0.00</p>
+                    <p id="totalPrice" class="font-bold text-right text-2xl text-green-400">Totaal: €0.00</p>
                 </div>
             </div>
 
             <!-- Reserveringsformulier -->
-            <div id="reservationForm" class="hidden bg-white p-6 rounded-lg shadow-lg">
-                <h3 class="text-xl font-bold text-gray-900 mb-4">Reservering maken</h3>
-                <form id="bookingForm" class="space-y-4">
-                    <input type="hidden" id="chairIdInput" name="chair_id">
-                    
-                    <div>
-                        <label for="name" class="block text-sm font-medium text-gray-700">Naam</label>
-                        <input type="text" id="name" name="name" required
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                    </div>
-                    
-                    <div>
-                        <label for="email" class="block text-sm font-medium text-gray-700">E-mail</label>
-                        <input type="email" id="email" name="email" required
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                    </div>
-                    
-                    <button type="submit" id="submitReservation" disabled
-                        class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                        Reserveren
-                    </button>
-                </form>
+            <div id="reservationForm" class="hidden animate-slide-up">
+                <div class="bg-gray-800 p-8 rounded-xl shadow-xl border border-gray-700">
+                    <h3 class="text-2xl font-bold text-gray-100 mb-6">
+                        <i class="fas fa-ticket-alt mr-2 text-blue-400"></i>Reservering maken
+                    </h3>
+                    <form id="bookingForm" class="space-y-6">
+                        <input type="hidden" id="chairIdInput" name="chair_id">
+                        
+                        <div class="space-y-2">
+                            <label for="name" class="block text-sm font-medium text-gray-300">
+                                <i class="fas fa-user mr-2 text-blue-400"></i>Naam
+                            </label>
+                            <input type="text" id="name" name="name" required
+                                class="w-full h-12 px-4 bg-gray-700 border-2 border-gray-600 rounded-lg shadow-sm 
+                                       focus:border-blue-400 focus:ring-blue-400 text-gray-100 text-lg
+                                       placeholder-gray-400">
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label for="email" class="block text-sm font-medium text-gray-300">
+                                <i class="fas fa-envelope mr-2 text-blue-400"></i>E-mail
+                            </label>
+                            <input type="email" id="email" name="email" required
+                                class="w-full h-12 px-4 bg-gray-700 border-2 border-gray-600 rounded-lg shadow-sm 
+                                       focus:border-blue-400 focus:ring-blue-400 text-gray-100 text-lg
+                                       placeholder-gray-400">
+                        </div>
+                        
+                        <button type="submit" id="submitReservation" disabled
+                            class="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-lg font-semibold
+                                   hover:from-blue-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 
+                                   focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
+                                   transform hover:scale-[1.02]">
+                            <i class="fas fa-check mr-2"></i>Reserveren
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -113,10 +182,20 @@
         let selectedSeats = [];
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
+        // Initialiseer tooltips
+        function initTooltips() {
+            tippy('[data-tippy-content]', {
+                animation: 'scale',
+                theme: 'dark',
+                placement: 'top'
+            });
+        }
+
         // Functie om stoel te selecteren/deselecteren
         function selectSeat(button) {
             const chairId = button.dataset.chairId;
             const index = selectedSeats.findIndex(seat => seat.id === chairId);
+            const indicator = button.querySelector('div');
             
             if (index === -1) {
                 // Voeg stoel toe aan selectie
@@ -128,10 +207,16 @@
                     type: button.dataset.type
                 });
                 button.classList.add('selected');
+                button.classList.add('scale-110');
+                indicator.classList.remove('opacity-0');
+                indicator.classList.add('opacity-30');
             } else {
                 // Verwijder stoel uit selectie
                 selectedSeats.splice(index, 1);
                 button.classList.remove('selected');
+                button.classList.remove('scale-110');
+                indicator.classList.add('opacity-0');
+                indicator.classList.remove('opacity-30');
             }
             
             updateSelectedSeats();
@@ -142,14 +227,19 @@
             const selectedSeatsContainer = document.getElementById('selectedSeats');
             const totalPriceElement = document.getElementById('totalPrice');
             const submitButton = document.getElementById('submitReservation');
+            const reservationForm = document.getElementById('reservationForm');
             
             if (selectedSeats.length > 0) {
                 // Toon geselecteerde stoelen
                 selectedSeatsContainer.innerHTML = selectedSeats
                     .map(seat => `
-                        <div class="flex items-center justify-between p-2 bg-gray-100 rounded">
-                            <span>Rij ${seat.row}, Stoel ${seat.seat}</span>
-                            <span>€${seat.price.toFixed(2)}</span>
+                        <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg transform transition-all duration-200 hover:scale-[1.01]">
+                            <span>
+                                <i class="fas fa-chair mr-2 text-blue-400"></i>
+                                Rij ${seat.row}, Stoel ${seat.seat}
+                                <span class="text-sm text-gray-400 ml-2">(${seat.type})</span>
+                            </span>
+                            <span class="text-green-400">€${seat.price.toFixed(2)}</span>
                         </div>
                     `)
                     .join('');
@@ -158,17 +248,14 @@
                 const totalPrice = selectedSeats.reduce((sum, seat) => sum + seat.price, 0);
                 totalPriceElement.textContent = `Totaal: €${totalPrice.toFixed(2)}`;
                 
-                // Voeg chair_id toe aan verborgen input
-                const chairIdInput = document.getElementById('chairIdInput');
-                chairIdInput.value = selectedSeats[0].id; // We gebruiken voorlopig alleen de eerste stoel
-                
-                // Toon reserveringsformulier
-                document.getElementById('reservationForm').classList.remove('hidden');
+                // Voeg alle geselecteerde stoelen toe aan de formData
+                // Voeg screening_id toe aan de formData
+                reservationForm.classList.remove('hidden');
                 submitButton.disabled = false;
             } else {
-                selectedSeatsContainer.innerHTML = '<p class="text-gray-500">Geen stoelen geselecteerd</p>';
+                selectedSeatsContainer.innerHTML = '<p class="text-gray-500 italic"><i class="fas fa-info-circle mr-2"></i>Geen stoelen geselecteerd</p>';
                 totalPriceElement.textContent = 'Totaal: €0.00';
-                document.getElementById('reservationForm').classList.add('hidden');
+                reservationForm.classList.add('hidden');
                 submitButton.disabled = true;
             }
         }
@@ -176,7 +263,6 @@
         // Functie om stoelen te laden voor een vertoning
         async function loadSeats(screeningId) {
             try {
-                console.log('Loading seats for screening:', screeningId);
                 const response = await fetch(`/check-availability?screening_id=${screeningId}`, {
                     headers: {
                         'Accept': 'application/json',
@@ -185,7 +271,6 @@
                 });
 
                 const data = await response.json();
-                console.log('Received data:', data);
                 
                 if (!response.ok) {
                     throw new Error(data.error || 'Er is een fout opgetreden bij het laden van de stoelen.');
@@ -196,110 +281,166 @@
                 }
 
                 currentScreening = data.screening;
-                currentPrices = {
-                    standaard: parseFloat(data.prices.standaard),
-                    luxe: parseFloat(data.prices.luxe),
-                    rolstoel: parseFloat(data.prices.rolstoel)
-                };
+                currentPrices = data.prices;
+
+                // Update screening info
+                document.getElementById('screeningInfo').innerHTML = `
+                    <div class="space-x-4">
+                        <span><i class="fas fa-film mr-1"></i>${data.screening.movie}</span>
+                        <span><i class="fas fa-door-open mr-1"></i>${data.screening.screen}</span>
+                        <span><i class="fas fa-clock mr-1"></i>${data.screening.start_time}</span>
+                    </div>
+                `;
 
                 // Reset selectie
                 selectedSeats = [];
                 updateSelectedSeats();
 
-                // Maak stoelengrid
+                // Toon stoelenselectie met animatie
+                const seatSelection = document.getElementById('seatSelection');
+                seatSelection.classList.remove('hidden');
+                
+                // Bouw stoelengrid
                 const seatsGrid = document.getElementById('seatsGrid');
                 seatsGrid.innerHTML = '';
 
-                // Converteer object naar array en sorteer op rijnummer
-                Object.entries(data.chairs)
-                    .sort(([rowA], [rowB]) => parseInt(rowA) - parseInt(rowB))
-                    .forEach(([rowNumber, chairs]) => {
-                        const rowDiv = document.createElement('div');
-                        rowDiv.className = 'flex justify-center gap-4 mb-4';
+                Object.entries(data.chairs).forEach(([rowNumber, seats]) => {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'flex justify-center gap-2';
+                    
+                    seats.forEach(seat => {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.disabled = !seat.is_available;
+                        button.dataset.chairId = seat.id;
+                        button.dataset.rowNumber = seat.row_number;
+                        button.dataset.seatNumber = seat.seat_number;
+                        button.dataset.price = seat.price;
+                        button.dataset.type = seat.type;
                         
-                        chairs.forEach(chair => {
-                            const button = document.createElement('button');
-                            button.className = `
-                                seat-button w-12 h-12 rounded-lg text-white font-bold 
-                                flex items-center justify-center transition-colors
-                                ${getChairClass(chair)}
-                            `;
-                            button.disabled = !chair.is_available;
-                            button.dataset.chairId = chair.id;
-                            button.dataset.rowNumber = chair.row_number;
-                            button.dataset.seatNumber = chair.seat_number;
-                            button.dataset.price = chair.price;
-                            button.dataset.type = chair.type;
-                            button.textContent = `${chair.row_number}-${chair.seat_number}`;
-                            
-                            if (chair.is_available) {
-                                button.addEventListener('click', () => selectSeat(button));
-                            }
-                            
-                            rowDiv.appendChild(button);
-                        });
+                        // Bepaal de stijl op basis van het type en beschikbaarheid
+                        const baseClasses = 'w-10 h-10 rounded-lg transition-all duration-200 transform hover:scale-110 flex items-center justify-center relative';
+                        const typeClasses = {
+                            'standaard': 'bg-blue-500 hover:bg-blue-600',
+                            'luxe': 'bg-purple-500 hover:bg-purple-600',
+                            'rolstoel': 'bg-green-500 hover:bg-green-600'
+                        };
                         
-                        seatsGrid.appendChild(rowDiv);
+                        button.className = seat.is_available
+                            ? `${baseClasses} ${typeClasses[seat.type]}`
+                            : `${baseClasses} bg-gray-600 cursor-not-allowed opacity-50`;
+
+                        // Voeg selectie indicator toe
+                        const indicator = document.createElement('div');
+                        indicator.className = 'absolute inset-0 bg-yellow-400 opacity-0 transition-opacity duration-200 rounded-lg';
+                        button.appendChild(indicator);
+
+                        // Voeg een tooltip toe
+                        button.setAttribute('data-tippy-content', `
+                            Rij ${seat.row_number}, Stoel ${seat.seat_number}
+                            Type: ${seat.type}
+                            Prijs: €${seat.price}
+                            ${!seat.is_available ? '(Bezet)' : ''}
+                        `);
+
+                        // Voeg een icoontje toe op basis van het type
+                        const icon = document.createElement('i');
+                        icon.className = {
+                            'standaard': 'fas fa-chair',
+                            'luxe': 'fas fa-couch',
+                            'rolstoel': 'fas fa-wheelchair'
+                        }[seat.type];
+                        button.appendChild(icon);
+
+                        if (seat.is_available) {
+                            button.onclick = () => selectSeat(button);
+                        }
+                        
+                        rowDiv.appendChild(button);
                     });
+                    
+                    seatsGrid.appendChild(rowDiv);
+                });
 
-                // Toon stoelenselectie
-                document.getElementById('seatSelection').classList.remove('hidden');
+                // Initialiseer tooltips voor de nieuwe stoelen
+                initTooltips();
+
             } catch (error) {
-                console.error('Fout bij laden stoelen:', error);
-                alert('Er is een fout opgetreden bij het laden van de stoelen: ' + error.message);
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oeps...',
+                    text: error.message,
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#3B82F6',
+                    background: '#1F2937',
+                    color: '#F3F4F6'
+                });
             }
         }
 
-        // Functie om de juiste CSS classes voor stoelen te bepalen
-        function getChairClass(chair) {
-            let classes = '';
-            
-            if (!chair.is_available) {
-                classes += 'bg-gray-500 cursor-not-allowed ';
-            } else {
-                switch (chair.type) {
-                    case 'standaard':
-                        classes += 'bg-blue-500 hover:bg-blue-600 ';
-                        break;
-                    case 'luxe':
-                        classes += 'bg-purple-500 hover:bg-purple-600 ';
-                        break;
-                    case 'rolstoel':
-                        classes += 'bg-green-500 hover:bg-green-600 ';
-                        break;
-                }
-            }
-            
-            return classes;
-        }
+        // Event listeners
+        document.querySelectorAll('.screening-button').forEach(button => {
+            button.addEventListener('click', () => {
+                // Verwijder actieve status van alle knoppen
+                document.querySelectorAll('.screening-button').forEach(btn => {
+                    btn.classList.remove('ring-2', 'ring-blue-400', 'ring-offset-2', 'ring-offset-gray-800');
+                });
+                
+                // Voeg actieve status toe aan geklikte knop
+                button.classList.add('ring-2', 'ring-blue-400', 'ring-offset-2', 'ring-offset-gray-800');
+                
+                // Toon loading state
+                Swal.fire({
+                    title: 'Stoelen laden...',
+                    text: 'Even geduld alstublieft',
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    background: '#1F2937',
+                    color: '#F3F4F6',
+                    willOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                loadSeats(button.dataset.screeningId).then(() => {
+                    Swal.close();
+                });
+            });
+        });
 
-        // Handle form submission
         document.getElementById('bookingForm').addEventListener('submit', async (event) => {
             event.preventDefault();
-            const form = event.target;
-            const formData = new FormData(form);
+            const submitButton = document.getElementById('submitReservation');
+            const originalText = submitButton.innerHTML;
             
-            // Voeg alle geselecteerde stoelen toe aan de formData
-            formData.delete('chair_id'); // Verwijder enkele stoel input als die bestaat
-            selectedSeats.forEach(seat => {
-                formData.append('chair_ids[]', seat.id);
-            });
-
-            // Voeg screening_id toe aan de formData
-            formData.append('screening_id', currentScreening.id);
-
             try {
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Reservering verwerken...';
+                
+                const form = event.target;
+                const formData = new FormData(form);
+                
+                // Voeg alle geselecteerde stoelen toe aan de formData
+                formData.delete('chair_id'); // Verwijder enkele stoel input als die bestaat
+                selectedSeats.forEach(seat => {
+                    formData.append('chair_ids[]', seat.id);
+                });
+
+                // Voeg screening_id toe aan de formData
+                formData.append('screening_id', currentScreening.id);
+
                 const response = await fetch('/reservations', {
                     method: 'POST',
                     headers: {
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
                     },
                     body: formData
                 });
 
                 const data = await response.json();
-
+                
                 if (!response.ok) {
                     throw new Error(data.error || 'Er is een fout opgetreden bij het maken van de reservering.');
                 }
@@ -308,34 +449,72 @@
                     throw new Error(data.error);
                 }
 
-                // Reset formulier en selectie
-                selectedSeats = [];
-                updateSelectedSeats();
-                form.reset();
-                
-                // Toon succes bericht
-                alert('Reservering succesvol gemaakt! Uw reserveringscode is: ' + data.reservation_code);
-                
-                // Herlaad stoelen
-                await loadSeats(currentScreening.id);
-            } catch (error) {
-                console.error('Fout bij maken reservering:', error);
-                alert(error.message);
-            }
-        });
+                // Toon succes bericht met reserveringscode
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Reservering succesvol!',
+                    html: `
+                        <p class="mb-4">Uw reservering is succesvol verwerkt.</p>
+                        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                            <p class="text-gray-300">Uw reserveringscode is:</p>
+                            <p class="text-2xl font-bold text-blue-400 mt-2">${data.reservation_code}</p>
+                        </div>
+                        <p class="mt-4 text-sm text-gray-400">Bewaar deze code goed, u heeft hem nodig bij de (Denkbeeldige) bioscoop.</p>
+                    `,
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#3B82F6',
+                    background: '#1F2937',
+                    color: '#F3F4F6',
+                    allowOutsideClick: false
+                });
 
-        // Event listeners voor vertoning selectie
-        document.querySelectorAll('.screening-button').forEach(button => {
-            button.addEventListener('click', async () => {
-                const screeningId = button.dataset.screeningId;
-                await loadSeats(screeningId);
-            });
+                // Reset en herlaad de pagina
+                location.reload();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oeps...',
+                    text: error.message,
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#3B82F6',
+                    background: '#1F2937',
+                    color: '#F3F4F6'
+                });
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalText;
+            }
         });
     </script>
 
     <style>
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slide-up {
+            from { 
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to { 
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .animate-fade-in {
+            animation: fade-in 0.5s ease-out;
+        }
+
+        .animate-slide-up {
+            animation: slide-up 0.5s ease-out;
+        }
+
         .seat-button.selected {
-            @apply ring-2 ring-yellow-400 ring-offset-2;
+            @apply ring-2 ring-yellow-400 ring-offset-2 ring-offset-gray-800 scale-110;
         }
     </style>
 </body>
