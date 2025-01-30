@@ -25,7 +25,7 @@ class Screening extends Model
     ];
 
     /**
-     * De film van deze vertoning
+     * Relatie met film
      */
     public function movie(): BelongsTo
     {
@@ -33,7 +33,7 @@ class Screening extends Model
     }
 
     /**
-     * De zaal van deze vertoning
+     * Relatie met zaal
      */
     public function screen(): BelongsTo
     {
@@ -41,7 +41,7 @@ class Screening extends Model
     }
 
     /**
-     * De reserveringen voor deze vertoning
+     * Relatie met reserveringen
      */
     public function reservations(): HasMany
     {
